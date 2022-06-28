@@ -15,8 +15,4 @@
 
 library azuread_login_view;
 
-/// A Calculator.
-class Calculator {
-  /// Returns [value] plus 1.
-  int addOne(int value) => value + 1;
-}
+export 'package:azuread_login_view/widgets/azure_ad_login_view.dart';
