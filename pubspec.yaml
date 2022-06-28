@@ -1,6 +1,6 @@
 name: azuread_login_view
 description: Provides one or more widgets to handle OAuth logins via Azure Active Directory.
-version: 0.0.3
+version: 0.0.4
 homepage: https://github.com/egomobile/azuread_login_view
 
 environment:
@@ -10,12 +10,12 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  http: 0.13.4
+  webview_flutter: 3.0.4
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^2.0.0
-  http: 0.13.4
-  webview_flutter: 3.0.4
 
 flutter:

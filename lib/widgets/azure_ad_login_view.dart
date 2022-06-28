@@ -14,8 +14,6 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 import 'package:flutter/material.dart';
-
-// ignore: depend_on_referenced_packages
 import 'package:webview_flutter/webview_flutter.dart';
 
 import 'package:azuread_login_view/utils.dart' as utils;
@@ -31,7 +29,7 @@ typedef AzureADLoginNavigationErrorHandler = NavigationDecision? Function(
 ///
 /// all data is submitted to [tokens] and [options]
 typedef AzureADLoginNewTokensHandler = NavigationDecision? Function(
-    AzureADTokens tokens, AzureADLoginViewOptions options);
+    AzureADTokens tokens);
 
 /// stores a access token response from Azure AD
 class AzureADTokens {
@@ -85,6 +83,16 @@ class AzureADTokens {
 
     return newTokens;
   }
+
+  /// converts this instance to a `Map`
+  Map<String, dynamic> toMap() {
+    final map = <String, dynamic>{};
+    map['access_token'] = accessToken;
+    map['refresh_token'] = refreshToken;
+    map['expires_on'] = expiresOn;
+
+    return map;
+  }
 }
 
 /// options for an `AzureADLoginView` widget instance
@@ -98,7 +106,7 @@ class AzureADLoginViewOptions {
   late final String loginPolicy;
 
   /// optional and custom error handler
-  late final AzureADLoginNavigationErrorHandler? navigationErrorHandler;
+  late final AzureADLoginNavigationErrorHandler? onNavigationError;
 
   /// handler, that is invoked, when new tokens have been generated
   /// and received
@@ -146,7 +154,7 @@ class AzureADLoginViewOptions {
 class AzureADLoginViewOptionsBuilder {
   String? _clientId;
   String? _loginPolicy;
-  AzureADLoginNavigationErrorHandler? _navigationErrorHandler;
+  AzureADLoginNavigationErrorHandler? _onNavigationError;
   AzureADLoginNewTokensHandler? _onNewTokens;
   String? _redirectURI;
   Iterable<String> _scopes = [];
@@ -167,12 +175,14 @@ class AzureADLoginViewOptionsBuilder {
     return this;
   }
 
-  AzureADLoginViewOptionsBuilder setNavigationErrorHandler(
-      AzureADLoginNavigationErrorHandler? navigationErrorHandler) {
-    _navigationErrorHandler = navigationErrorHandler;
+  /// sets the [onNavigationError]
+  AzureADLoginViewOptionsBuilder setOnNavigationError(
+      AzureADLoginNavigationErrorHandler? onNavigationError) {
+    _onNavigationError = onNavigationError;
     return this;
   }
 
+  /// sets the [onNewTokens]
   AzureADLoginViewOptionsBuilder setOnNewTokens(
       AzureADLoginNewTokensHandler? onNewTokens) {
     _onNewTokens = onNewTokens;
@@ -224,6 +234,7 @@ class AzureADLoginViewOptionsBuilder {
     options._scopes = _scopes.toList();
     options.clientId = _clientId!;
     options.loginPolicy = _loginPolicy!;
+    options.onNavigationError = _onNavigationError;
     options.onNewTokens = _onNewTokens!;
     options.redirectURI = _redirectURI!;
     options.tenant = _tenant!;
@@ -246,13 +257,13 @@ class AzureADLoginView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final AzureADLoginNavigationErrorHandler navigationErrorHandler;
-    if (options.navigationErrorHandler == null) {
-      navigationErrorHandler = (error, navigation) {
+    final AzureADLoginNavigationErrorHandler onNavigationError;
+    if (options.onNavigationError == null) {
+      onNavigationError = (error, navigation) {
         return NavigationDecision.prevent;
       };
     } else {
-      navigationErrorHandler = options.navigationErrorHandler!;
+      onNavigationError = options.onNavigationError!;
     }
 
     return WebView(
@@ -284,16 +295,16 @@ class AzureADLoginView extends StatelessWidget {
                 newTokens._redirectURI = options.redirectURI;
                 newTokens._scopes = options.scopes.toList(growable: false);
 
-                return options.onNewTokens(newTokens, options) ??
+                return options.onNewTokens(newTokens) ??
                     NavigationDecision.navigate;
               } catch (error) {
-                return navigationErrorHandler(error, navigation) ??
+                return onNavigationError(error, navigation) ??
                     NavigationDecision.prevent;
               }
             }
           }
         } catch (error) {
-          return navigationErrorHandler(error, navigation) ??
+          return onNavigationError(error, navigation) ??
               NavigationDecision.prevent;
         }
 

@@ -1,0 +1,14 @@
+{
+    "tenant": "<TENANT-NAME-OR-ID>",
+    "clientId": "<CLIENT-ID>",
+    "redirectUri": "<REDIRECT-URI>",
+    "scopes": [
+        "openid",
+        "https://<TENANT-NAME-OR-ID>.onmicrosoft.com/<ID>/user.read",
+        "https://<TENANT-NAME-OR-ID>.onmicrosoft.com/<ID>/car.read",
+        "profile offline_access"
+    ],
+    "loginPolicy": "<NAME-OF-LOGIN-POLICY>",
+    "registerPolicy": "<NAME-OF-REGISTER-POLICY>",
+    "passwordResetPolicy": "<NAME-OF-PASSWORD-RESET-POLICY>"
+}
