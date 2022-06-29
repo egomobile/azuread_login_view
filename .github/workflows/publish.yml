@@ -14,7 +14,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
       - name: Install dependencies
-        run: dart pub get
+        run: flutter pub get
       - name: Setup credentials
         run: | 
           mkdir -p ~/.pub-cache 
