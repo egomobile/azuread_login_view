@@ -158,8 +158,11 @@ class AzureADLoginViewOptions {
   /// the JavaScript, which should be invoked initially
   late final String? initialJavaScript;
 
-  // / the initial URI
+  /// the initial URI
   late final InitialAzureADLoginUri initialUri;
+
+  /// indicates if B2C scenario or not
+  late final bool isB2C;
 
   /// the name of the login policy, as defined in Azure
   late final String loginPolicy;
@@ -190,7 +193,11 @@ class AzureADLoginViewOptions {
 
   /// returns the base URI
   String getBaseUri() {
-    return "https://$tenant.b2clogin.com/$tenant.onmicrosoft.com";
+    if (isB2C) {
+      return "https://$tenant.b2clogin.com/$tenant.onmicrosoft.com";
+    } else {
+      return "https://login.microsoftonline.com/$tenant";
+    }
   }
 
   /// return the login URI
@@ -241,7 +248,10 @@ class AzureADLoginViewOptions {
     final params = <String, String>{};
     final setParam = utils.createSetParam(params);
 
-    setParam("p", policy);
+    if (isB2C) {
+      setParam("p", policy);
+    }
+
     setParam("client_id", clientId);
     setParam("nonce", "defaultNonce");
     setParam("redirect_uri", redirectURI);
@@ -269,6 +279,7 @@ class AzureADLoginViewOptionsBuilder {
   bool _clearCache = false;
   String? _initialJavaScript;
   InitialAzureADLoginUri _initialUri = InitialAzureADLoginUri.login;
+  bool _isB2C = true;
   String? _loginPolicy;
   bool _noDefaultScopes = false;
   AzureADLoginNavigationErrorHandler? _onNavigationError;
@@ -335,18 +346,19 @@ class AzureADLoginViewOptionsBuilder {
       scopes.addAll(["openid", "profile offline_access"]);
     }
 
+    options.clearCache = _clearCache;
     options.clientId = _clientId!;
+    options.initialJavaScript = _initialJavaScript;
     options.initialUri = _initialUri;
+    options.isB2C = _isB2C;
     options.loginPolicy = _loginPolicy!;
     options.onNavigationError = _onNavigationError;
     options.onNewTokens = _onNewTokens!;
-    options.initialJavaScript = _initialJavaScript;
     options.passwordResetPolicy = _passwordResetPolicy;
     options.redirectURI = _redirectURI!;
     options.registerPolicy = _registerPolicy;
     options.scopes = scopes.toList(growable: false);
     options.tenant = _tenant!;
-    options.clearCache = _clearCache;
 
     return options;
   }
@@ -382,6 +394,7 @@ class AzureADLoginViewOptionsBuilder {
   /// azureADConfig['password_reset_policy'] = null;
   /// azureADConfig['initial_javascript'] = null;
   /// azureADConfig['clear_cache'] = false;
+  /// azureADConfig['is_b2c'] = true;
   ///
   /// final AzureADLoginViewOptions options =
   ///   AzureADLoginViewOptionsBuilder.buildFromMap(azureADConfig);
@@ -411,7 +424,8 @@ class AzureADLoginViewOptionsBuilder {
   ///   "register_policy": null,
   ///   "password_reset_policy": null,
   ///   "initial_javascript": null,
-  ///   "clear_cache": false
+  ///   "clear_cache": false,
+  ///   "is_b2c": true
   /// }''';
   ///
   /// final options = AzureADLoginViewOptionsBuilder.fromJSON(jsonStr)
@@ -460,6 +474,7 @@ class AzureADLoginViewOptionsBuilder {
   /// azureADConfig['password_reset_policy'] = null;
   /// azureADConfig['initial_javascript'] = null;
   /// azureADConfig['clear_cache'] = false;
+  /// azureADConfig['is_b2c'] = true;
   ///
   /// final AzureADLoginViewOptions options =
   ///   AzureADLoginViewOptionsBuilder.fromMap(azureADConfig)
@@ -524,6 +539,10 @@ class AzureADLoginViewOptionsBuilder {
       builder.setClearCache(map['clear_cache']);
     }
 
+    if (map['is_b2c'] != null) {
+      builder.setIsB2C(map['is_b2c']);
+    }
+
     return builder;
   }
 
@@ -586,6 +605,21 @@ class AzureADLoginViewOptionsBuilder {
   AzureADLoginViewOptionsBuilder setInitialUri(
       InitialAzureADLoginUri initialUri) {
     _initialUri = initialUri;
+    return this;
+  }
+
+  /// sets the optional and custom [isB2C]
+  ///
+  /// Example:
+  /// ```dart
+  /// AzureADLoginViewOptionsBuilder()
+  ///    // ...
+  ///
+  ///   .setIsB2C(false)
+  ///   .build();
+  /// ```
+  AzureADLoginViewOptionsBuilder setIsB2C(bool isB2C) {
+    _isB2C = isB2C;
     return this;
   }
 
