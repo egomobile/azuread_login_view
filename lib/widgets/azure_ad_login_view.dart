@@ -48,10 +48,16 @@ class AzureADTokens {
   /// the optional refesh token
   late final String? refreshToken;
 
-  /// initializes a new instance of that class
   AzureADTokens._();
 
   /// starts generating new access token, using value of `refreshToken`
+  ///
+  /// Example:
+  /// ```dart
+  /// Future<AzureADTokens> refreshTokens(AzureADTokens tokens) async {
+  ///   return tokens.refresh();
+  /// }
+  /// ```
   Future<AzureADTokens> refresh() async {
     if (refreshToken == null) {
       throw "No refreshToken available";
@@ -85,6 +91,13 @@ class AzureADTokens {
   }
 
   /// converts this instance to a `Map`
+  ///
+  /// Example:
+  /// ```dart
+  /// void printTokensAsMap(AzureADTokens tokens) {
+  ///   print(tokens.toMap());
+  /// }
+  /// ```
   Map<String, dynamic> toMap() {
     final map = <String, dynamic>{};
     map['access_token'] = accessToken;
@@ -360,6 +373,8 @@ class AzureADLoginView extends StatelessWidget {
   Widget build(BuildContext context) {
     final AzureADLoginNavigationErrorHandler onNavigationError;
     if (options.onNavigationError == null) {
+      // use default
+
       onNavigationError = (error, navigation) {
         return NavigationDecision.prevent;
       };
