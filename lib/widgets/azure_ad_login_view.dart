@@ -193,12 +193,22 @@ class AzureADLoginViewOptions {
     return "https://$tenant.b2clogin.com/$tenant.onmicrosoft.com";
   }
 
-  /// return the login Uri
+  /// return the login URI
   String getLoginUri() {
-    return _getAuthorizeUrl(policy: loginPolicy);
+    return _getOAuth2Url(policy: loginPolicy);
   }
 
-  /// return the password reset Uri
+  /// return the logout URI
+  String getLogoutUri() {
+    final params = <String, String>{};
+    final setParam = utils.createSetParam(params);
+
+    setParam("post_logout_redirect_uri", redirectURI);
+
+    return "${getBaseUri()}/oauth2/v2.0/logout?${utils.toQueryParams(params)}";
+  }
+
+  /// return the password reset URI
   ///
   /// throws a `StateError` if `passwordResetPolicy` is not set
   String getPasswordResetUri() {
@@ -206,10 +216,10 @@ class AzureADLoginViewOptions {
       throw StateError("passwordResetPolicy cannot not be null");
     }
 
-    return _getAuthorizeUrl(policy: passwordResetPolicy!);
+    return _getOAuth2Url(policy: passwordResetPolicy!);
   }
 
-  /// return the register Uri
+  /// return the register URI
   ///
   /// throws a `StateError` if `registerPolicy` is not set
   String getRegisterUri() {
@@ -217,10 +227,17 @@ class AzureADLoginViewOptions {
       throw StateError("registerPolicy cannot not be null");
     }
 
-    return _getAuthorizeUrl(policy: registerPolicy!);
+    return _getOAuth2Url(policy: registerPolicy!);
   }
 
-  String _getAuthorizeUrl({required String policy}) {
+  String _getOAuth2Url({
+    required String policy,
+    String endPoint = 'authorize',
+  }) {
+    if (endPoint != '') {
+      endPoint = '/$endPoint';
+    }
+
     final params = <String, String>{};
     final setParam = utils.createSetParam(params);
 
@@ -232,7 +249,7 @@ class AzureADLoginViewOptions {
     setParam("response_type", "code");
     setParam("prompt", "login");
 
-    return "${getBaseUri()}/oauth2/v2.0/authorize?${utils.toQueryParams(params)}";
+    return "${getBaseUri()}/oauth2/v2.0$endPoint?${utils.toQueryParams(params)}";
   }
 }
 
