@@ -1,4 +1,4 @@
-[Flutter widget](https://docs.flutter.dev/development/ui/widgets) using [webview_flutter](https://pub.dev/packages/webview_flutter) and [http](https://pub.dev/packages/http).
+[Flutter widget](https://docs.flutter.dev/development/ui/widgets) using [webview_flutter](https://pub.dev/packages/webview_flutter) and [http](https://pub.dev/packages/http), which provides one or more widgets to handle OAuth logins via Azure Active Directory.
 
 ```dart
 import 'package:azuread_login_view/azuread_login_view.dart';
@@ -35,4 +35,4 @@ class MyLoginExamplePage extends StatelessWidget {
 }
 ```
 
-An example application can be found inside [example folder](./example).
+An example application can be found inside [example folder](./example/).

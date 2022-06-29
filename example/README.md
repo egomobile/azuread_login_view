@@ -1,4 +1,4 @@
-Before you can runs this example, first create the following `app.json` inside your [assets folder](./assets) and use the following skeleton:
+Before you can runs this example, first create the following `app.json` inside your [assets folder](./assets/) and use the following skeleton:
 
 ```json
 {
