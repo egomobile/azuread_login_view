@@ -17,12 +17,12 @@ class MyLoginExamplePage extends StatelessWidget {
       .setClientId("<CLIENT-ID>")
       .setRedirectURI("<REDIRECT-URI>")
       .setLoginPolicy("<NAME-OF-LOGIN-POLICY>")
-      .setOnNewTokens((AzureADTokens tokens) {
-         // s. `tokens`
+      .setOnNewTokens((AzureADLoginNewTokensHandlerContext context) {
+         // s. `context.tokens`
        })
 
       // this is optional
-      .setOnNavigationError((Object error, NavigationRequest navigation) {
+      .setOnNavigationError((AzureADLoginNavigationErrorHandlerContext context) {
          // ...
        })
 
