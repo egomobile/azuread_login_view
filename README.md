@@ -1,3 +1,6 @@
+[![pub package](https://img.shields.io/pub/v/azuread_login_view.svg)](https://pub.dev/packages/azuread_login_view)
+[![Publish](https://github.com/egomobile/azuread_login_view/actions/workflows/publish.yml/badge.svg)](https://github.com/egomobile/azuread_login_view/actions/workflows/publish.yml)
+
 [Flutter widget](https://docs.flutter.dev/development/ui/widgets) using [webview_flutter](https://pub.dev/packages/webview_flutter) and [http](https://pub.dev/packages/http), which provides one or more widgets to handle OAuth logins via Azure Active Directory.
 
 ```dart
