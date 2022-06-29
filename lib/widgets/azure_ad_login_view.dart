@@ -18,6 +18,9 @@ import 'package:webview_flutter/webview_flutter.dart';
 
 import 'package:azuread_login_view/utils.dart' as utils;
 
+export 'package:webview_flutter/webview_flutter.dart'
+    show NavigationDecision, NavigationRequest;
+
 /// an navigation error handler, which receive the [error]
 /// and the [navigation] context
 typedef AzureADLoginNavigationErrorHandler = NavigationDecision? Function(
@@ -27,9 +30,10 @@ typedef AzureADLoginNavigationErrorHandler = NavigationDecision? Function(
 
 /// handler, which is invoked after access token have been generated
 ///
-/// all data is submitted to [tokens] and [options]
+/// all data is submitted to [tokens]
 typedef AzureADLoginNewTokensHandler = NavigationDecision? Function(
-    AzureADTokens tokens);
+  AzureADTokens tokens,
+);
 
 /// stores a access token response from Azure AD
 class AzureADTokens {
@@ -52,6 +56,8 @@ class AzureADTokens {
 
   /// starts generating new access token, using value of `refreshToken`
   ///
+  /// throws a `StateError` if `refreshToken` is not set
+  ///
   /// Example:
   /// ```dart
   /// Future<AzureADTokens> refreshTokens(AzureADTokens tokens) async {
@@ -60,7 +66,7 @@ class AzureADTokens {
   /// ```
   Future<AzureADTokens> refresh() async {
     if (refreshToken == null) {
-      throw "No refreshToken available";
+      throw StateError("No refreshToken available");
     }
 
     final params = <String, String>{};
@@ -113,6 +119,9 @@ class AzureADLoginViewOptions {
   /// the client ID
   late final String clientId;
 
+  // / the initial URI
+  late final InitialAzureADLoginUri initialUri;
+
   /// the name of the login policy, as defined in Azure
   late final String loginPolicy;
 
@@ -123,8 +132,14 @@ class AzureADLoginViewOptions {
   /// and received
   late final AzureADLoginNewTokensHandler onNewTokens;
 
+  /// the name of the password reset policy, as defined in Azure
+  late final String? passwordResetPolicy;
+
   /// the redirect URI
   late final String redirectURI;
+
+  /// the name of the register policy, as defined in Azure
+  late final String? registerPolicy;
 
   // list of scopes
   late final List<String> scopes;
@@ -141,10 +156,36 @@ class AzureADLoginViewOptions {
 
   /// return the login Uri
   String getLoginUri() {
+    return _getAuthorizeUrl(policy: loginPolicy);
+  }
+
+  /// return the password reset Uri
+  ///
+  /// throws a `StateError` if `passwordResetPolicy` is not set
+  String getPasswordResetUri() {
+    if (passwordResetPolicy == null) {
+      throw StateError("passwordResetPolicy cannot not be null");
+    }
+
+    return _getAuthorizeUrl(policy: passwordResetPolicy!);
+  }
+
+  /// return the register Uri
+  ///
+  /// throws a `StateError` if `registerPolicy` is not set
+  String getRegisterUri() {
+    if (registerPolicy == null) {
+      throw StateError("registerPolicy cannot not be null");
+    }
+
+    return _getAuthorizeUrl(policy: registerPolicy!);
+  }
+
+  String _getAuthorizeUrl({required String policy}) {
     final params = <String, String>{};
     final setParam = utils.createSetParam(params);
 
-    setParam("p", loginPolicy);
+    setParam("p", registerPolicy);
     setParam("client_id", clientId);
     setParam("nonce", "defaultNonce");
     setParam("redirect_uri", redirectURI);
@@ -170,10 +211,14 @@ class AzureADLoginViewOptions {
 class AzureADLoginViewOptionsBuilder {
   String? _clientId;
   String? _loginPolicy;
+  InitialAzureADLoginUri _initialUri = InitialAzureADLoginUri.login;
   bool _noDefaultScopes = false;
   AzureADLoginNavigationErrorHandler? _onNavigationError;
   AzureADLoginNewTokensHandler? _onNewTokens;
+  String? _passwordResetPolicy;
   String? _redirectURI;
+  String? _registerPolicy;
+
   Iterable<String> _scopes = [];
   String? _tenant;
 
@@ -182,6 +227,8 @@ class AzureADLoginViewOptionsBuilder {
 
   /// build a new `AzureADLoginViewOptions` object from
   /// the current data of this instance
+  ///
+  /// throws a `StateError` if required data is missing
   ///
   /// Example:
   /// ```dart
@@ -205,23 +252,23 @@ class AzureADLoginViewOptionsBuilder {
   /// ```
   AzureADLoginViewOptions build() {
     if (_clientId == null) {
-      throw "clientId is required";
+      throw StateError("clientId is required");
     }
 
     if (_tenant == null) {
-      throw "tenant is required";
+      throw StateError("tenant is required");
     }
 
     if (_loginPolicy == null) {
-      throw "loginPolicy is required";
+      throw StateError("loginPolicy is required");
     }
 
     if (_redirectURI == null) {
-      throw "redirectURI is required";
+      throw StateError("redirectURI is required");
     }
 
     if (_onNewTokens == null) {
-      throw "onNewTokens is required";
+      throw StateError("onNewTokens is required");
     }
 
     final options = AzureADLoginViewOptions._();
@@ -232,14 +279,133 @@ class AzureADLoginViewOptionsBuilder {
     }
 
     options.clientId = _clientId!;
+    options.initialUri = _initialUri;
     options.loginPolicy = _loginPolicy!;
     options.onNavigationError = _onNavigationError;
     options.onNewTokens = _onNewTokens!;
+    options.passwordResetPolicy = _passwordResetPolicy;
     options.redirectURI = _redirectURI!;
+    options.registerPolicy = _registerPolicy;
     options.scopes = scopes.toList(growable: false);
     options.tenant = _tenant!;
 
     return options;
+  }
+
+  /// creates a new instance and directly creates a new
+  /// `AzureADLoginViewOptions` object from a [map]
+  ///
+  /// Example:
+  /// ```dart
+  /// NavigationDecision? onNewTokens(AzureADTokens tokens) {
+  /// };
+  ///
+  /// NavigationDecision? onNavigationError(Object error, NavigationRequest navigation) {
+  /// };
+  ///
+  /// final Map azureADConfig = {};
+  ///
+  /// // required ...
+  /// azureADConfig['tenant'] = '<TENANT-NAME-OR-ID>';
+  /// azureADConfig['redirect_uri'] = '<REDIRECT-URI>';
+  /// azureADConfig['login_policy'] = '<LOGIN-POLICY>';
+  /// azureADConfig['client_id'] = '<CLIENT-ID>';
+  ///
+  /// // optional (all values are default) ...
+  /// azureADConfig['scopes'] = [];
+  /// azureADConfig['no_default_scopes'] = false;
+  /// azureADConfig['initial_uri'] = InitialAzureADLoginUri.login;
+  /// azureADConfig['on_navigation_error'] = onNavigationError;
+  /// azureADConfig['on_new_tokens'] = onNewTokens;
+  ///
+  /// final AzureADLoginViewOptions options =
+  ///   AzureADLoginViewOptionsBuilder.buildFromMap(azureADConfig);
+  /// ```
+  static AzureADLoginViewOptions buildFromMap(Map map) {
+    return AzureADLoginViewOptionsBuilder.fromMap(map).build();
+  }
+
+  /// creates a new instance from a [map]
+  ///
+  /// Example:
+  /// ```dart
+  /// NavigationDecision? onNewTokens(AzureADTokens tokens) {
+  /// };
+  ///
+  /// NavigationDecision? onNavigationError(Object error, NavigationRequest navigation) {
+  /// };
+  ///
+  /// final Map azureADConfig = {};
+  ///
+  /// // required ...
+  /// azureADConfig['tenant'] = '<TENANT-NAME-OR-ID>';
+  /// azureADConfig['redirect_uri'] = '<REDIRECT-URI>';
+  /// azureADConfig['login_policy'] = '<LOGIN-POLICY>';
+  /// azureADConfig['client_id'] = '<CLIENT-ID>';
+  ///
+  /// // optional (all values are default) ...
+  /// azureADConfig['scopes'] = [];
+  /// azureADConfig['no_default_scopes'] = false;
+  /// azureADConfig['initial_uri'] = InitialAzureADLoginUri.login;
+  /// azureADConfig['on_navigation_error'] = onNavigationError;
+  /// azureADConfig['on_new_tokens'] = onNewTokens;
+  ///
+  /// final AzureADLoginViewOptions options =
+  ///   AzureADLoginViewOptionsBuilder.fromMap(azureADConfig)
+  ///     .build();
+  /// ```
+  static AzureADLoginViewOptionsBuilder fromMap(Map map) {
+    final builder = AzureADLoginViewOptionsBuilder();
+
+    if (map['tenant'] != null) {
+      builder.setTenant("${map['tenant']}".trim());
+    }
+
+    if (map['scopes'] != null) {
+      var noDefaults = false;
+      if (map['no_default_scopes'] != null) {
+        noDefaults = map['no_default_scopes'] as bool;
+      }
+
+      builder.setScopes(
+        map['scopes'].map<String>((e) => "$e".trim()),
+        noDefaults: noDefaults,
+      );
+    }
+
+    if (map['redirect_uri'] != null) {
+      builder.setRedirectURI("${map['redirect_uri']}".trim());
+    }
+
+    if (map['client_id'] != null) {
+      builder.setClientId("${map['client_id']}".trim());
+    }
+
+    if (map['on_new_tokens'] != null) {
+      builder.setOnNewTokens(map['on_new_tokens']);
+    }
+    if (map['on_navigation_error'] != null) {
+      builder.setOnNavigationError(map['on_navigation_error']);
+    }
+
+    if (map['initial_uri'] != null) {
+      final initialUri = InitialAzureADLoginUri.values
+          .firstWhere((e) => e.toString() == "${map['initial_uri']}".trim());
+
+      builder.setInitialUri(initialUri);
+    }
+
+    if (map['login_policy'] != null) {
+      builder.setLoginPolicy("${map['login_policy']}".trim());
+    }
+    if (map['register_policy'] != null) {
+      builder.setRegisterPolicy("${map['register_policy']}".trim());
+    }
+    if (map['password_reset_policy'] != null) {
+      builder.setPasswordResetPolicy("${map['password_reset_policy']}".trim());
+    }
+
+    return builder;
   }
 
   /// sets the REQUIRED [clientId]
@@ -249,11 +415,27 @@ class AzureADLoginViewOptionsBuilder {
   /// AzureADLoginViewOptionsBuilder()
   ///    // ...
   ///
-  ///   .setClientId("my_client_id_from_azure")
+  ///   .setClientId("my_client_id")
   ///   .build();
   /// ```
   AzureADLoginViewOptionsBuilder setClientId(String clientId) {
     _clientId = clientId;
+    return this;
+  }
+
+  /// sets the optional and custom [initialUri]
+  ///
+  /// Example:
+  /// ```dart
+  /// AzureADLoginViewOptionsBuilder()
+  ///    // ...
+  ///
+  ///   .setInitialUri(InitialAzureADLoginUri.register)
+  ///   .build();
+  /// ```
+  AzureADLoginViewOptionsBuilder setInitialUri(
+      InitialAzureADLoginUri initialUri) {
+    _initialUri = initialUri;
     return this;
   }
 
@@ -308,6 +490,22 @@ class AzureADLoginViewOptionsBuilder {
     return this;
   }
 
+  /// sets the custom and optional [registerPolicy]
+  ///
+  /// Example:
+  /// ```dart
+  /// AzureADLoginViewOptionsBuilder()
+  ///    // ...
+  ///
+  ///   .setRegisterPolicy("my_password_register_policy")
+  ///   .build();
+  /// ```
+  AzureADLoginViewOptionsBuilder setPasswordResetPolicy(
+      String? passwordResetPolicy) {
+    _passwordResetPolicy = passwordResetPolicy;
+    return this;
+  }
+
   /// sets the REQUIRED [redirectURI]
   ///
   /// Example:
@@ -320,6 +518,21 @@ class AzureADLoginViewOptionsBuilder {
   /// ```
   AzureADLoginViewOptionsBuilder setRedirectURI(String redirectURI) {
     _redirectURI = redirectURI;
+    return this;
+  }
+
+  /// sets the custom and optional [registerPolicy]
+  ///
+  /// Example:
+  /// ```dart
+  /// AzureADLoginViewOptionsBuilder()
+  ///    // ...
+  ///
+  ///   .setRegisterPolicy("my_register_policy")
+  ///   .build();
+  /// ```
+  AzureADLoginViewOptionsBuilder setRegisterPolicy(String? registerPolicy) {
+    _registerPolicy = registerPolicy;
     return this;
   }
 
@@ -429,8 +642,20 @@ class AzureADLoginView extends StatelessWidget {
       onNavigationError = options.onNavigationError!;
     }
 
+    final String initialUrl;
+    if (options.initialUri == InitialAzureADLoginUri.login) {
+      initialUrl = options.getLoginUri();
+    } else if (options.initialUri == InitialAzureADLoginUri.passwordReset) {
+      initialUrl = options.getPasswordResetUri();
+    } else if (options.initialUri == InitialAzureADLoginUri.register) {
+      initialUrl = options.getRegisterUri();
+    } else {
+      throw StateError(
+          "value ${options.initialUri} of InitialAzureADLoginUri is not supported");
+    }
+
     return WebView(
-      initialUrl: options.getLoginUri(),
+      initialUrl: initialUrl,
       javascriptMode: JavascriptMode.unrestricted,
       navigationDelegate: (navigation) async {
         try {
@@ -513,4 +738,18 @@ class AzureADLoginView extends StatelessWidget {
       return false;
     }
   }
+}
+
+/// known values which describe the `initialUrl`
+/// value for the underlying `WebView`
+/// of an `AzureADLoginView` widget
+enum InitialAzureADLoginUri {
+  /// login page
+  login,
+
+  // password reset page
+  passwordReset,
+
+  // register account page
+  register,
 }

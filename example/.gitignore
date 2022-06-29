@@ -48,3 +48,4 @@ app.*.map.json
 
 # custom
 /assets/app.json
+/pubspec.lock

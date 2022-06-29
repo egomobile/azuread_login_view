@@ -13,6 +13,9 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+/// Azure AD Login View
+///
+/// Provides one or more widgets to handle OAuth logins via Azure Active Directory.
 library azuread_login_view;
 
 export 'package:azuread_login_view/widgets/azure_ad_login_view.dart';

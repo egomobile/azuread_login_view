@@ -1,6 +1,6 @@
 name: azuread_login_view
 description: Provides one or more widgets to handle OAuth logins via Azure Active Directory.
-version: 0.0.5
+version: 0.1.0
 homepage: https://github.com/egomobile/azuread_login_view
 
 environment:
