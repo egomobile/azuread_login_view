@@ -503,6 +503,10 @@ class AzureADLoginViewOptionsBuilder {
       builder.setInitialJavaScript("${map['initial_javascript']}");
     }
 
+    if (map['clear_cache'] != null) {
+      builder.setClearCache(map['clear_cache']);
+    }
+
     return builder;
   }
 
