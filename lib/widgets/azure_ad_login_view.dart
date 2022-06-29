@@ -186,10 +186,21 @@ class AzureADLoginViewOptionsBuilder {
   /// Example:
   /// ```dart
   /// final AzureADLoginViewOptions options = AzureADLoginViewOptionsBuilder()
+  ///   // setup required settings
   ///   .setTenant("<TENANT-NAME-OR-ID>")
   ///   .setClientId("<CLIENT-ID>")
   ///   .setRedirectURI("<REDIRECT-URI>")
   ///   .setLoginPolicy("<NAME-OF-LOGIN-POLICY>")
+  ///   .setOnNewTokens((AzureADTokens tokens) {
+  ///      // s. `tokens`
+  ///    })
+  ///
+  ///   // optional settings
+  ///   .setOnNavigationError((Object error, NavigationRequest navigation) {
+  ///      // ...
+  ///    })
+  ///
+  ///   // now create instance
   ///   .build();
   /// ```
   AzureADLoginViewOptions build() {
@@ -358,6 +369,42 @@ class AzureADLoginViewOptionsBuilder {
 }
 
 /// a widget, which handles a Azure AD login
+///
+/// Example:
+/// ```dart
+/// import 'package:azuread_login_view/azuread_login_view.dart';
+/// import 'package:flutter/material.dart';
+///
+/// void main() {
+///   runApp(const MyExamplePage());
+/// }
+///
+/// class MyExamplePage extends StatelessWidget {
+///   @override
+///   Widget build(BuildContext context) {
+///     final AzureADLoginViewOptions loginViewOptions = AzureADLoginViewOptionsBuilder()
+///       // setup required settings
+///       .setTenant("<TENANT-NAME-OR-ID>")
+///       .setClientId("<CLIENT-ID>")
+///       .setRedirectURI("<REDIRECT-URI>")
+///       .setLoginPolicy("<NAME-OF-LOGIN-POLICY>")
+///       .setOnNewTokens((AzureADTokens tokens) {
+///          // s. `tokens`
+///        })
+///
+///       // this is optional
+///       .setOnNavigationError((Object error, NavigationRequest navigation) {
+///          // ...
+///        })
+///
+///       .build();
+///
+///     return MaterialApp(
+///       home: AzureADLoginView(loginViewOptions),
+///     );
+///   }
+/// }
+/// ```
 class AzureADLoginView extends StatelessWidget {
   /// the underlying options
   final AzureADLoginViewOptions options;
@@ -445,23 +492,23 @@ class AzureADLoginView extends StatelessWidget {
     return utils.executeTokenRequest(uri);
   }
 
-  bool _isLoginUri(Uri uri) {
+  bool _isLoginUri(Uri other) {
     try {
-      final lURI = Uri.parse(options.getLoginUri());
+      final uri = Uri.parse(options.getLoginUri());
 
-      return lURI.host.toLowerCase().trim() == uri.host.toLowerCase().trim() &&
-          lURI.path.toLowerCase().trim() == uri.path.toLowerCase().trim();
+      return uri.host.toLowerCase().trim() == other.host.toLowerCase().trim() &&
+          uri.path.toLowerCase().trim() == other.path.toLowerCase().trim();
     } catch (error) {
       return false;
     }
   }
 
-  bool _isRedirectUri(Uri uri) {
+  bool _isRedirectUri(Uri other) {
     try {
-      final rURI = Uri.parse(options.redirectURI);
+      final uri = Uri.parse(options.redirectURI);
 
-      return rURI.host.toLowerCase().trim() == uri.host.toLowerCase().trim() &&
-          rURI.path.toLowerCase().trim() == uri.path.toLowerCase().trim();
+      return uri.host.toLowerCase().trim() == other.host.toLowerCase().trim() &&
+          uri.path.toLowerCase().trim() == other.path.toLowerCase().trim();
     } catch (error) {
       return false;
     }

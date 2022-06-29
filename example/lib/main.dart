@@ -15,7 +15,7 @@
 
 import 'dart:convert';
 
-import 'package:azuread_login_view/widgets/azure_ad_login_view.dart';
+import 'package:azuread_login_view/azuread_login_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 
@@ -30,7 +30,7 @@ class AzureADLoginViewExampleApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       theme: ThemeData(),
-      home: AzureADLoginViewExampleAppPage(),
+      home: const AzureADLoginViewExampleAppPage(),
     );
   }
 }
@@ -65,6 +65,7 @@ class _AzureADLoginViewExampleAppPageState
               .setLoginPolicy(appJSON['loginPolicy'])
               .setScopes(appJSON['scopes'].map<String>((e) => "$e"))
               .setOnNewTokens((tokens) {
+            // ignore: avoid_print
             print('New tokens: ${tokens.toMap()}');
           }).build());
         }
