@@ -72,6 +72,7 @@ class AzureADLoginNewTokensHandlerContext {
 class AzureADTokens {
   late final String _baseUrl;
   late final String _clientId;
+  late bool _isB2C;
   late final String _loginPolicy;
   late final String _redirectURI;
   late final List<String> _scopes;
@@ -111,8 +112,14 @@ class AzureADTokens {
     setParam("grant_type", "refresh_token");
     setParam("refresh_token", refreshToken);
 
-    final uri = Uri.parse(
-        "$_baseUrl/$_loginPolicy/oauth2/v2.0/token?${utils.toQueryParams(params)}");
+    final uriSuffix = "/oauth2/v2.0/token?${utils.toQueryParams(params)}";
+
+    final Uri uri;
+    if (_isB2C) {
+      uri = Uri.parse("$_baseUrl/$_loginPolicy$uriSuffix");
+    } else {
+      uri = Uri.parse("$_baseUrl/oauth2/v2.0$uriSuffix");
+    }
 
     final result = await utils.executeTokenRequest(uri);
 
@@ -235,6 +242,11 @@ class AzureADLoginViewOptions {
     }
 
     return _getOAuth2Url(policy: registerPolicy!);
+  }
+
+  /// return the token URI
+  String getTokenUri() {
+    return "${getBaseUri()}/oauth2/v2.0/token";
   }
 
   String _getOAuth2Url({
@@ -886,6 +898,7 @@ class AzureADLoginView extends StatelessWidget {
                   newTokens.expiresOn = response['expires_on'];
                   newTokens._baseUrl = options.getBaseUri();
                   newTokens._clientId = options.clientId;
+                  newTokens._isB2C = options.isB2C;
                   newTokens._loginPolicy = options.loginPolicy;
                   newTokens._redirectURI = options.redirectURI;
                   newTokens._scopes = options.scopes.toList(growable: false);
@@ -947,8 +960,15 @@ class AzureADLoginView extends StatelessWidget {
     setParam("grant_type", "authorization_code");
     setParam("code", code);
 
-    final uri = Uri.parse(
-        "${options.getBaseUri()}/${options.loginPolicy}/oauth2/v2.0/token?${utils.toQueryParams(params)}");
+    final uriSuffix = "/oauth2/v2.0/token?${utils.toQueryParams(params)}";
+
+    final Uri uri;
+    if (options.isB2C) {
+      uri =
+          Uri.parse("${options.getBaseUri()}/${options.loginPolicy}$uriSuffix");
+    } else {
+      uri = Uri.parse("${options.getBaseUri()}$uriSuffix");
+    }
 
     return utils.executeTokenRequest(uri);
   }

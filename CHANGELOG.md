@@ -1,3 +1,8 @@
+## 0.4.0
+
+* add `getTokenUri()` method to [AzureADLoginViewOptions class](https://pub.dev/documentation/azuread_login_view/latest/widgets_azure_ad_login_view/AzureADLoginViewOptions-class.html)
+* (bug-)fixes
+
 ## 0.3.0
 
 * add support for non B2C scenarios
