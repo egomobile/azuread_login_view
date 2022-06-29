@@ -97,8 +97,6 @@ class AzureADTokens {
 
 /// options for an `AzureADLoginView` widget instance
 class AzureADLoginViewOptions {
-  late List<String> _scopes = [];
-
   /// the client ID
   late final String clientId;
 
@@ -115,13 +113,8 @@ class AzureADLoginViewOptions {
   /// the redirect URI
   late final String redirectURI;
 
-  /// gets the full list of scopes as non growable list
-  List<String> get scopes {
-    final list = ["openid", "profile offline_access"];
-    list.addAll(_scopes);
-
-    return list.toList(growable: false);
-  }
+  // list of scopes
+  late final List<String> scopes;
 
   /// the name / ID of the tenant
   late final String tenant;
@@ -151,9 +144,20 @@ class AzureADLoginViewOptions {
 }
 
 /// builder for an `AzureADLoginViewOptions` instance
+///
+/// Example:
+/// ```dart
+/// final AzureADLoginViewOptions options = AzureADLoginViewOptionsBuilder()
+///   .setTenant("<TENANT-NAME-OR-ID>")
+///   .setClientId("<CLIENT-ID>")
+///   .setRedirectURI("<REDIRECT-URI>")
+///   .setLoginPolicy("<NAME-OF-LOGIN-POLICY>")
+///   .build();
+/// ```
 class AzureADLoginViewOptionsBuilder {
   String? _clientId;
   String? _loginPolicy;
+  bool _noDefaultScopes = false;
   AzureADLoginNavigationErrorHandler? _onNavigationError;
   AzureADLoginNewTokensHandler? _onNewTokens;
   String? _redirectURI;
@@ -163,52 +167,18 @@ class AzureADLoginViewOptionsBuilder {
   /// initializes a new instance of that class
   AzureADLoginViewOptionsBuilder();
 
-  /// sets the [clientId]
-  AzureADLoginViewOptionsBuilder setClientId(String clientId) {
-    _clientId = clientId;
-    return this;
-  }
-
-  /// sets the [loginPolicy]
-  AzureADLoginViewOptionsBuilder setLoginPolicy(String loginPolicy) {
-    _loginPolicy = loginPolicy;
-    return this;
-  }
-
-  /// sets the [onNavigationError]
-  AzureADLoginViewOptionsBuilder setOnNavigationError(
-      AzureADLoginNavigationErrorHandler? onNavigationError) {
-    _onNavigationError = onNavigationError;
-    return this;
-  }
-
-  /// sets the [onNewTokens]
-  AzureADLoginViewOptionsBuilder setOnNewTokens(
-      AzureADLoginNewTokensHandler? onNewTokens) {
-    _onNewTokens = onNewTokens;
-    return this;
-  }
-
-  /// sets the [redirectURI]
-  AzureADLoginViewOptionsBuilder setRedirectURI(String redirectURI) {
-    _redirectURI = redirectURI;
-    return this;
-  }
-
-  /// sets the [redirectURI]
-  AzureADLoginViewOptionsBuilder setScopes(Iterable<String> scopes) {
-    _scopes = scopes;
-    return this;
-  }
-
-  /// sets the [tenant]
-  AzureADLoginViewOptionsBuilder setTenant(String tenant) {
-    _tenant = tenant;
-    return this;
-  }
-
   /// build a new `AzureADLoginViewOptions` object from
   /// the current data of this instance
+  ///
+  /// Example:
+  /// ```dart
+  /// final AzureADLoginViewOptions options = AzureADLoginViewOptionsBuilder()
+  ///   .setTenant("<TENANT-NAME-OR-ID>")
+  ///   .setClientId("<CLIENT-ID>")
+  ///   .setRedirectURI("<REDIRECT-URI>")
+  ///   .setLoginPolicy("<NAME-OF-LOGIN-POLICY>")
+  ///   .build();
+  /// ```
   AzureADLoginViewOptions build() {
     if (_clientId == null) {
       throw "clientId is required";
@@ -231,15 +201,146 @@ class AzureADLoginViewOptionsBuilder {
     }
 
     final options = AzureADLoginViewOptions._();
-    options._scopes = _scopes.toList();
+
+    final scopes = _scopes.toList();
+    if (!_noDefaultScopes) {
+      scopes.addAll(["openid", "profile offline_access"]);
+    }
+
     options.clientId = _clientId!;
     options.loginPolicy = _loginPolicy!;
     options.onNavigationError = _onNavigationError;
     options.onNewTokens = _onNewTokens!;
     options.redirectURI = _redirectURI!;
+    options.scopes = scopes.toList(growable: false);
     options.tenant = _tenant!;
 
     return options;
+  }
+
+  /// sets the REQUIRED [clientId]
+  ///
+  /// Example:
+  /// ```dart
+  /// AzureADLoginViewOptionsBuilder()
+  ///    // ...
+  ///
+  ///   .setClientId("my_client_id_from_azure")
+  ///   .build();
+  /// ```
+  AzureADLoginViewOptionsBuilder setClientId(String clientId) {
+    _clientId = clientId;
+    return this;
+  }
+
+  /// sets the REQUIRED [loginPolicy]
+  ///
+  /// Example:
+  /// ```dart
+  /// AzureADLoginViewOptionsBuilder()
+  ///    // ...
+  ///
+  ///   .setLoginPolicy("my_login_policy")
+  ///   .build();
+  /// ```
+  AzureADLoginViewOptionsBuilder setLoginPolicy(String loginPolicy) {
+    _loginPolicy = loginPolicy;
+    return this;
+  }
+
+  /// sets the optional and custom [onNavigationError]
+  ///
+  /// Example:
+  /// ```dart
+  /// AzureADLoginViewOptionsBuilder()
+  ///    // ...
+  ///
+  ///   .setOnNavigationError((Object error, NavigationRequest navigation) {
+  ///      print("Error in workflow: ${error}");
+  ///    })
+  ///   .build();
+  /// ```
+  AzureADLoginViewOptionsBuilder setOnNavigationError(
+      AzureADLoginNavigationErrorHandler? onNavigationError) {
+    _onNavigationError = onNavigationError;
+    return this;
+  }
+
+  /// sets the REQUIRED [onNewTokens]
+  ///
+  /// Example:
+  /// ```dart
+  /// AzureADLoginViewOptionsBuilder()
+  ///    // ...
+  ///
+  ///   .setOnNewTokens((AzureADTokens tokens) {
+  ///      print("New tokens generated: ${tokens.toMap()}");
+  ///    })
+  ///   .build();
+  /// ```
+  AzureADLoginViewOptionsBuilder setOnNewTokens(
+      AzureADLoginNewTokensHandler onNewTokens) {
+    _onNewTokens = onNewTokens;
+    return this;
+  }
+
+  /// sets the REQUIRED [redirectURI]
+  ///
+  /// Example:
+  /// ```dart
+  /// AzureADLoginViewOptionsBuilder()
+  ///    // ...
+  ///
+  ///   .setRedirectURI(["my redirect URI as defined in Azure"])
+  ///   .build();
+  /// ```
+  AzureADLoginViewOptionsBuilder setRedirectURI(String redirectURI) {
+    _redirectURI = redirectURI;
+    return this;
+  }
+
+  /// sets the optional and custom [scopes]
+  ///
+  /// if [noDefaults] is set to `true`, no default entries
+  /// like `openid` and `profile offline_access` will be
+  /// added automatically
+  ///
+  /// Example:
+  /// ```dart
+  /// AzureADLoginViewOptionsBuilder()
+  ///    // ...
+  ///
+  ///    // this will also add `openid`
+  ///    // and `profile offline_access` automatically
+  ///    //
+  ///    // also submit `noDefaults` with `true`
+  ///    // to prevent this behavior
+  ///   .setScopes(["some custom scope"])
+  ///   .build();
+  /// ```
+  AzureADLoginViewOptionsBuilder setScopes(
+    Iterable<String> scopes, {
+    bool noDefaults = false,
+  }) {
+    _scopes = scopes;
+    _noDefaultScopes = noDefaults;
+
+    return this;
+  }
+
+  /// sets the REQUIRED [tenant]
+  ///
+  /// Example:
+  /// ```dart
+  /// AzureADLoginViewOptionsBuilder()
+  ///    // ...
+  ///
+  ///   .setTenant(["name or id of the tenant"])
+  ///   .build();
+  /// ```
+  AzureADLoginViewOptionsBuilder setTenant(String tenant) {
+    _tenant = tenant;
+    return this;
   }
 }
 
