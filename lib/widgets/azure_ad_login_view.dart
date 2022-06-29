@@ -13,6 +13,8 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
@@ -24,16 +26,47 @@ export 'package:webview_flutter/webview_flutter.dart'
 /// an navigation error handler, which receive the [error]
 /// and the [navigation] context
 typedef AzureADLoginNavigationErrorHandler = NavigationDecision? Function(
-  Object error,
-  NavigationRequest navigation,
+  AzureADLoginNavigationErrorHandlerContext context,
 );
 
 /// handler, which is invoked after access token have been generated
 ///
-/// all data is submitted to [tokens]
+/// all data is submitted to a [context]
 typedef AzureADLoginNewTokensHandler = NavigationDecision? Function(
-  AzureADTokens tokens,
+  AzureADLoginNewTokensHandlerContext context,
 );
+
+/// a context for an `AzureADLoginNewTokensHandler` function
+class AzureADLoginNavigationErrorHandlerContext {
+  /// the thrown error
+  final dynamic error;
+
+  /// the navigation context
+  final NavigationRequest navigation;
+
+  AzureADLoginNavigationErrorHandlerContext._({
+    required this.error,
+    required this.navigation,
+  });
+}
+
+/// a context for an `AzureADLoginNewTokensHandler` function
+class AzureADLoginNewTokensHandlerContext {
+  /// the initial URI
+  final InitialAzureADLoginUri initialUri;
+
+  /// the navigation context
+  final NavigationRequest navigation;
+
+  /// the new tokens (only if `initialUri` is `login`)
+  final AzureADTokens? tokens;
+
+  AzureADLoginNewTokensHandlerContext._({
+    required this.initialUri,
+    required this.tokens,
+    required this.navigation,
+  });
+}
 
 /// stores a access token response from Azure AD
 class AzureADTokens {
@@ -116,8 +149,14 @@ class AzureADTokens {
 
 /// options for an `AzureADLoginView` widget instance
 class AzureADLoginViewOptions {
+  /// clear brwoser cache at the beginning or not
+  late final bool clearCache;
+
   /// the client ID
   late final String clientId;
+
+  /// the JavaScript, which should be invoked initially
+  late final String? initialJavaScript;
 
   // / the initial URI
   late final InitialAzureADLoginUri initialUri;
@@ -185,7 +224,7 @@ class AzureADLoginViewOptions {
     final params = <String, String>{};
     final setParam = utils.createSetParam(params);
 
-    setParam("p", registerPolicy);
+    setParam("p", policy);
     setParam("client_id", clientId);
     setParam("nonce", "defaultNonce");
     setParam("redirect_uri", redirectURI);
@@ -210,15 +249,16 @@ class AzureADLoginViewOptions {
 /// ```
 class AzureADLoginViewOptionsBuilder {
   String? _clientId;
-  String? _loginPolicy;
+  bool _clearCache = false;
+  String? _initialJavaScript;
   InitialAzureADLoginUri _initialUri = InitialAzureADLoginUri.login;
+  String? _loginPolicy;
   bool _noDefaultScopes = false;
   AzureADLoginNavigationErrorHandler? _onNavigationError;
   AzureADLoginNewTokensHandler? _onNewTokens;
   String? _passwordResetPolicy;
   String? _redirectURI;
   String? _registerPolicy;
-
   Iterable<String> _scopes = [];
   String? _tenant;
 
@@ -283,24 +323,28 @@ class AzureADLoginViewOptionsBuilder {
     options.loginPolicy = _loginPolicy!;
     options.onNavigationError = _onNavigationError;
     options.onNewTokens = _onNewTokens!;
+    options.initialJavaScript = _initialJavaScript;
     options.passwordResetPolicy = _passwordResetPolicy;
     options.redirectURI = _redirectURI!;
     options.registerPolicy = _registerPolicy;
     options.scopes = scopes.toList(growable: false);
     options.tenant = _tenant!;
+    options.clearCache = _clearCache;
 
     return options;
   }
 
-  /// creates a new instance and directly creates a new
+  /// creates a new instance and directly builds a new
   /// `AzureADLoginViewOptions` object from a [map]
   ///
   /// Example:
   /// ```dart
-  /// NavigationDecision? onNewTokens(AzureADTokens tokens) {
+  /// NavigationDecision? onNewTokens(AzureADLoginNewTokensHandlerContext context) {
+  ///   // ...
   /// };
   ///
-  /// NavigationDecision? onNavigationError(Object error, NavigationRequest navigation) {
+  /// NavigationDecision? onNavigationError(AzureADLoginNavigationErrorHandlerContext context) {
+  ///   // ...
   /// };
   ///
   /// final Map azureADConfig = {};
@@ -310,13 +354,17 @@ class AzureADLoginViewOptionsBuilder {
   /// azureADConfig['redirect_uri'] = '<REDIRECT-URI>';
   /// azureADConfig['login_policy'] = '<LOGIN-POLICY>';
   /// azureADConfig['client_id'] = '<CLIENT-ID>';
+  /// azureADConfig['on_new_tokens'] = onNewTokens;
   ///
   /// // optional (all values are default) ...
   /// azureADConfig['scopes'] = [];
   /// azureADConfig['no_default_scopes'] = false;
   /// azureADConfig['initial_uri'] = InitialAzureADLoginUri.login;
   /// azureADConfig['on_navigation_error'] = onNavigationError;
-  /// azureADConfig['on_new_tokens'] = onNewTokens;
+  /// azureADConfig['register_policy'] = null;
+  /// azureADConfig['password_reset_policy'] = null;
+  /// azureADConfig['initial_javascript'] = null;
+  /// azureADConfig['clear_cache'] = false;
   ///
   /// final AzureADLoginViewOptions options =
   ///   AzureADLoginViewOptionsBuilder.buildFromMap(azureADConfig);
@@ -325,14 +373,56 @@ class AzureADLoginViewOptionsBuilder {
     return AzureADLoginViewOptionsBuilder.fromMap(map).build();
   }
 
+  /// creates a new instance from a [jsonStr], which represents a [map],
+  /// that can be `null` or `undefined`
+  ///
+  /// Example:
+  /// ```dart
+  /// NavigationDecision? onNewTokens(AzureADLoginNewTokensHandlerContext context) {
+  ///   // ...
+  /// };
+  ///
+  /// final jsonStr = '''{
+  ///   "tenant": "<TENANT-NAME-OR-ID>",
+  ///   "redirect_uri": "<REDIRECT-URI>",
+  ///   "login_policy": "<LOGIN-POLICY>",
+  ///   "client_id": "<CLIENT-ID>",
+  ///
+  ///   "scopes": [],
+  ///   "no_default_scopes": false,
+  ///   "initial_uri": "login",
+  ///   "register_policy": null,
+  ///   "password_reset_policy": null,
+  ///   "initial_javascript": null,
+  ///   "clear_cache": false
+  /// }''';
+  ///
+  /// final options = AzureADLoginViewOptionsBuilder.fromJSON(jsonStr)
+  ///   // the following things are required
+  ///   // and have to be set manually,
+  ///   // because then cannot be saved in a `jsonStr`
+  ///   .setOnNewTokens(onNewTokens)
+  ///   .build();
+  /// ```
+  static AzureADLoginViewOptionsBuilder fromJSON(String jsonStr) {
+    final Map? map = jsonDecode(jsonStr);
+    if (map != null) {
+      return AzureADLoginViewOptionsBuilder.fromMap(map);
+    } else {
+      return AzureADLoginViewOptionsBuilder();
+    }
+  }
+
   /// creates a new instance from a [map]
   ///
   /// Example:
   /// ```dart
-  /// NavigationDecision? onNewTokens(AzureADTokens tokens) {
+  /// NavigationDecision? onNewTokens(AzureADLoginNewTokensHandlerContext context) {
+  ///   // ...
   /// };
   ///
-  /// NavigationDecision? onNavigationError(Object error, NavigationRequest navigation) {
+  /// NavigationDecision? onNavigationError(AzureADLoginNavigationErrorHandlerContext context) {
+  ///   // ...
   /// };
   ///
   /// final Map azureADConfig = {};
@@ -342,13 +432,17 @@ class AzureADLoginViewOptionsBuilder {
   /// azureADConfig['redirect_uri'] = '<REDIRECT-URI>';
   /// azureADConfig['login_policy'] = '<LOGIN-POLICY>';
   /// azureADConfig['client_id'] = '<CLIENT-ID>';
+  /// azureADConfig['on_new_tokens'] = onNewTokens;
   ///
   /// // optional (all values are default) ...
   /// azureADConfig['scopes'] = [];
   /// azureADConfig['no_default_scopes'] = false;
   /// azureADConfig['initial_uri'] = InitialAzureADLoginUri.login;
   /// azureADConfig['on_navigation_error'] = onNavigationError;
-  /// azureADConfig['on_new_tokens'] = onNewTokens;
+  /// azureADConfig['register_policy'] = null;
+  /// azureADConfig['password_reset_policy'] = null;
+  /// azureADConfig['initial_javascript'] = null;
+  /// azureADConfig['clear_cache'] = false;
   ///
   /// final AzureADLoginViewOptions options =
   ///   AzureADLoginViewOptionsBuilder.fromMap(azureADConfig)
@@ -405,6 +499,10 @@ class AzureADLoginViewOptionsBuilder {
       builder.setPasswordResetPolicy("${map['password_reset_policy']}".trim());
     }
 
+    if (map['initial_javascript'] != null) {
+      builder.setInitialJavaScript("${map['initial_javascript']}");
+    }
+
     return builder;
   }
 
@@ -420,6 +518,37 @@ class AzureADLoginViewOptionsBuilder {
   /// ```
   AzureADLoginViewOptionsBuilder setClientId(String clientId) {
     _clientId = clientId;
+    return this;
+  }
+
+  /// sets the custom and optional [initialJavaScript]
+  ///
+  /// Example:
+  /// ```dart
+  /// AzureADLoginViewOptionsBuilder()
+  ///    // ...
+  ///
+  ///   .setClearCache(true)
+  ///   .build();
+  /// ```
+  AzureADLoginViewOptionsBuilder setClearCache(bool clearCache) {
+    _clearCache = clearCache;
+    return this;
+  }
+
+  /// sets the custom and optional [initialJavaScript]
+  ///
+  /// Example:
+  /// ```dart
+  /// AzureADLoginViewOptionsBuilder()
+  ///    // ...
+  ///
+  ///   .setInitialJavaScript("alert('Hello, its me!');")
+  ///   .build();
+  /// ```
+  AzureADLoginViewOptionsBuilder setInitialJavaScript(
+      String? initialJavaScript) {
+    _initialJavaScript = initialJavaScript;
     return this;
   }
 
@@ -635,7 +764,7 @@ class AzureADLoginView extends StatelessWidget {
     if (options.onNavigationError == null) {
       // use default
 
-      onNavigationError = (error, navigation) {
+      onNavigationError = (context) {
         return NavigationDecision.prevent;
       };
     } else {
@@ -665,38 +794,90 @@ class AzureADLoginView extends StatelessWidget {
             return NavigationDecision.navigate;
           }
 
+          if (options.registerPolicy != null) {
+            if (_isRegisterUri(uri)) {
+              return NavigationDecision.navigate;
+            }
+          }
+
+          if (options.passwordResetPolicy != null) {
+            if (_isPasswordResetUri(uri)) {
+              return NavigationDecision.navigate;
+            }
+          }
+
           if (_isRedirectUri(uri)) {
-            if (uri.hasQuery && uri.queryParameters["code"] != null) {
-              try {
-                // generate access token from `code`
-                final code = uri.queryParameters["code"] as String;
-                final response = await _getUserTokensByCode(code);
+            if (options.initialUri != InitialAzureADLoginUri.login) {
+              final newTokensContext = AzureADLoginNewTokensHandlerContext._(
+                  tokens: null,
+                  initialUri: options.initialUri,
+                  navigation: navigation);
 
-                // collect data
-                final newTokens = AzureADTokens._();
-                newTokens.accessToken = response['access_token'];
-                newTokens.refreshToken = response['refresh_token'];
-                newTokens.expiresOn = response['expires_on'];
-                newTokens._baseUrl = options.getBaseUri();
-                newTokens._clientId = options.clientId;
-                newTokens._loginPolicy = options.loginPolicy;
-                newTokens._redirectURI = options.redirectURI;
-                newTokens._scopes = options.scopes.toList(growable: false);
+              return options.onNewTokens(newTokensContext) ??
+                  NavigationDecision.navigate;
+            }
 
-                return options.onNewTokens(newTokens) ??
-                    NavigationDecision.navigate;
-              } catch (error) {
-                return onNavigationError(error, navigation) ??
-                    NavigationDecision.prevent;
+            if (uri.hasQuery) {
+              if (uri.queryParameters["code"] != null) {
+                try {
+                  // generate access token from `code`
+                  final code = uri.queryParameters["code"] as String;
+                  final response = await _getUserTokensByCode(code);
+
+                  // collect data
+                  final newTokens = AzureADTokens._();
+                  newTokens.accessToken = response['access_token'];
+                  newTokens.refreshToken = response['refresh_token'];
+                  newTokens.expiresOn = response['expires_on'];
+                  newTokens._baseUrl = options.getBaseUri();
+                  newTokens._clientId = options.clientId;
+                  newTokens._loginPolicy = options.loginPolicy;
+                  newTokens._redirectURI = options.redirectURI;
+                  newTokens._scopes = options.scopes.toList(growable: false);
+
+                  final newTokensContext =
+                      AzureADLoginNewTokensHandlerContext._(
+                    tokens: newTokens,
+                    initialUri: options.initialUri,
+                    navigation: navigation,
+                  );
+
+                  return options.onNewTokens(newTokensContext) ??
+                      NavigationDecision.navigate;
+                } catch (error) {
+                  final newErrorContext =
+                      AzureADLoginNavigationErrorHandlerContext._(
+                    error: error,
+                    navigation: navigation,
+                  );
+
+                  return onNavigationError(newErrorContext) ??
+                      NavigationDecision.prevent;
+                }
               }
             }
           }
         } catch (error) {
-          return onNavigationError(error, navigation) ??
+          final newErrorContext = AzureADLoginNavigationErrorHandlerContext._(
+            error: error,
+            navigation: navigation,
+          );
+
+          return onNavigationError(newErrorContext) ??
               NavigationDecision.prevent;
         }
 
         return NavigationDecision.navigate;
+      },
+      onWebViewCreated: (controller) {
+        if (options.clearCache) {
+          controller.clearCache();
+        }
+
+        final initialJavaScript = options.initialJavaScript;
+        if (initialJavaScript != null) {
+          controller.runJavascriptReturningResult(initialJavaScript);
+        }
       },
     );
   }
@@ -718,19 +899,24 @@ class AzureADLoginView extends StatelessWidget {
   }
 
   bool _isLoginUri(Uri other) {
-    try {
-      final uri = Uri.parse(options.getLoginUri());
+    return _isUri(() => options.getLoginUri(), other);
+  }
 
-      return uri.host.toLowerCase().trim() == other.host.toLowerCase().trim() &&
-          uri.path.toLowerCase().trim() == other.path.toLowerCase().trim();
-    } catch (error) {
-      return false;
-    }
+  bool _isPasswordResetUri(Uri other) {
+    return _isUri(() => options.getPasswordResetUri(), other);
   }
 
   bool _isRedirectUri(Uri other) {
+    return _isUri(() => options.redirectURI, other);
+  }
+
+  bool _isRegisterUri(Uri other) {
+    return _isUri(() => options.getRegisterUri(), other);
+  }
+
+  bool _isUri(String Function() getUri, Uri other) {
     try {
-      final uri = Uri.parse(options.redirectURI);
+      final uri = Uri.parse(getUri());
 
       return uri.host.toLowerCase().trim() == other.host.toLowerCase().trim() &&
           uri.path.toLowerCase().trim() == other.path.toLowerCase().trim();

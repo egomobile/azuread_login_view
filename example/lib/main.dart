@@ -64,9 +64,9 @@ class _AzureADLoginViewExampleAppPageState
               .setRedirectURI(appJSON['redirectUri'])
               .setLoginPolicy(appJSON['loginPolicy'])
               .setScopes(appJSON['scopes'].map<String>((e) => "$e"))
-              .setOnNewTokens((tokens) {
+              .setOnNewTokens((context) {
             // ignore: avoid_print
-            print('New tokens: ${tokens.toMap()}');
+            print('New tokens: ${context.tokens!.toMap()}');
           }).build());
         }
 
