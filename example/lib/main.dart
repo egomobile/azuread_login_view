@@ -61,7 +61,7 @@ class _AzureADLoginViewExampleAppPageState
           return AzureADLoginView(AzureADLoginViewOptionsBuilder()
               .setTenant(appJSON['tenant'])
               .setClientId(appJSON['clientId'])
-              .setRedirectURI(appJSON['redirectUri'])
+              .setRedirectUri(appJSON['redirectUri'])
               .setLoginPolicy(appJSON['loginPolicy'])
               .setScopes(appJSON['scopes'].map<String>((e) => "$e"))
               .setOnNewTokens((context) {

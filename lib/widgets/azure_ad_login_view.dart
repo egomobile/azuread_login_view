@@ -74,7 +74,7 @@ class AzureADTokens {
   late final String _clientId;
   late bool _isB2C;
   late final String _loginPolicy;
-  late final String _redirectURI;
+  late final String _redirectUri;
   late final List<String> _scopes;
 
   /// the access token
@@ -107,7 +107,7 @@ class AzureADTokens {
     final setParam = utils.createSetParam(params);
 
     setParam("client_id", _clientId);
-    setParam("redirect_uri", _redirectURI);
+    setParam("redirect_uri", _redirectUri);
     setParam("scope", _scopes.join(" "));
     setParam("grant_type", "refresh_token");
     setParam("refresh_token", refreshToken);
@@ -130,7 +130,7 @@ class AzureADTokens {
     newTokens._baseUrl = _baseUrl;
     newTokens._clientId = _clientId;
     newTokens._loginPolicy = _loginPolicy;
-    newTokens._redirectURI = _redirectURI;
+    newTokens._redirectUri = _redirectUri;
     newTokens._scopes = _scopes.toList(growable: false);
 
     return newTokens;
@@ -185,7 +185,7 @@ class AzureADLoginViewOptions {
   late final String? passwordResetPolicy;
 
   /// the redirect URI
-  late final String redirectURI;
+  late final String redirectUri;
 
   /// the name of the register policy, as defined in Azure
   late final String? registerPolicy;
@@ -217,7 +217,7 @@ class AzureADLoginViewOptions {
     final params = <String, String>{};
     final setParam = utils.createSetParam(params);
 
-    setParam("post_logout_redirect_uri", redirectURI);
+    setParam("post_logout_redirect_uri", redirectUri);
 
     return "${getBaseUri()}/oauth2/v2.0/logout?${utils.toQueryParams(params)}";
   }
@@ -266,7 +266,7 @@ class AzureADLoginViewOptions {
 
     setParam("client_id", clientId);
     setParam("nonce", "defaultNonce");
-    setParam("redirect_uri", redirectURI);
+    setParam("redirect_uri", redirectUri);
     setParam("scope", "openid");
     setParam("response_type", "code");
     setParam("prompt", "login");
@@ -282,7 +282,7 @@ class AzureADLoginViewOptions {
 /// final AzureADLoginViewOptions options = AzureADLoginViewOptionsBuilder()
 ///   .setTenant("<TENANT-NAME-OR-ID>")
 ///   .setClientId("<CLIENT-ID>")
-///   .setRedirectURI("<REDIRECT-URI>")
+///   .setRedirectUri("<REDIRECT-URI>")
 ///   .setLoginPolicy("<NAME-OF-LOGIN-POLICY>")
 ///   .build();
 /// ```
@@ -297,7 +297,7 @@ class AzureADLoginViewOptionsBuilder {
   AzureADLoginNavigationErrorHandler? _onNavigationError;
   AzureADLoginNewTokensHandler? _onNewTokens;
   String? _passwordResetPolicy;
-  String? _redirectURI;
+  String? _redirectUri;
   String? _registerPolicy;
   Iterable<String> _scopes = [];
   String? _tenant;
@@ -316,7 +316,7 @@ class AzureADLoginViewOptionsBuilder {
   ///   // setup required settings
   ///   .setTenant("<TENANT-NAME-OR-ID>")
   ///   .setClientId("<CLIENT-ID>")
-  ///   .setRedirectURI("<REDIRECT-URI>")
+  ///   .setRedirectUri("<REDIRECT-URI>")
   ///   .setLoginPolicy("<NAME-OF-LOGIN-POLICY>")
   ///   .setOnNewTokens((AzureADTokens tokens) {
   ///      // s. `tokens`
@@ -343,8 +343,8 @@ class AzureADLoginViewOptionsBuilder {
       throw StateError("loginPolicy is required");
     }
 
-    if (_redirectURI == null) {
-      throw StateError("redirectURI is required");
+    if (_redirectUri == null) {
+      throw StateError("redirectUri is required");
     }
 
     if (_onNewTokens == null) {
@@ -367,7 +367,7 @@ class AzureADLoginViewOptionsBuilder {
     options.onNavigationError = _onNavigationError;
     options.onNewTokens = _onNewTokens!;
     options.passwordResetPolicy = _passwordResetPolicy;
-    options.redirectURI = _redirectURI!;
+    options.redirectUri = _redirectUri!;
     options.registerPolicy = _registerPolicy;
     options.scopes = scopes.toList(growable: false);
     options.tenant = _tenant!;
@@ -512,7 +512,7 @@ class AzureADLoginViewOptionsBuilder {
     }
 
     if (map['redirect_uri'] != null) {
-      builder.setRedirectURI("${map['redirect_uri']}".trim());
+      builder.setRedirectUri("${map['redirect_uri']}".trim());
     }
 
     if (map['client_id'] != null) {
@@ -702,18 +702,18 @@ class AzureADLoginViewOptionsBuilder {
     return this;
   }
 
-  /// sets the REQUIRED [redirectURI]
+  /// sets the REQUIRED [redirectUri]
   ///
   /// Example:
   /// ```dart
   /// AzureADLoginViewOptionsBuilder()
   ///    // ...
   ///
-  ///   .setRedirectURI(["my redirect URI as defined in Azure"])
+  ///   .setRedirectUri(["my redirect URI as defined in Azure"])
   ///   .build();
   /// ```
-  AzureADLoginViewOptionsBuilder setRedirectURI(String redirectURI) {
-    _redirectURI = redirectURI;
+  AzureADLoginViewOptionsBuilder setRedirectUri(String redirectUri) {
+    _redirectUri = redirectUri;
     return this;
   }
 
@@ -795,7 +795,7 @@ class AzureADLoginViewOptionsBuilder {
 ///       // setup required settings
 ///       .setTenant("<TENANT-NAME-OR-ID>")
 ///       .setClientId("<CLIENT-ID>")
-///       .setRedirectURI("<REDIRECT-URI>")
+///       .setRedirectUri("<REDIRECT-URI>")
 ///       .setLoginPolicy("<NAME-OF-LOGIN-POLICY>")
 ///       .setOnNewTokens((AzureADTokens tokens) {
 ///          // s. `tokens`
@@ -900,7 +900,7 @@ class AzureADLoginView extends StatelessWidget {
                   newTokens._clientId = options.clientId;
                   newTokens._isB2C = options.isB2C;
                   newTokens._loginPolicy = options.loginPolicy;
-                  newTokens._redirectURI = options.redirectURI;
+                  newTokens._redirectUri = options.redirectUri;
                   newTokens._scopes = options.scopes.toList(growable: false);
 
                   final newTokensContext =
@@ -955,7 +955,7 @@ class AzureADLoginView extends StatelessWidget {
     final setParam = utils.createSetParam(params);
 
     setParam("client_id", options.clientId);
-    setParam("redirect_uri", options.redirectURI);
+    setParam("redirect_uri", options.redirectUri);
     setParam("scope", options.scopes.join(" "));
     setParam("grant_type", "authorization_code");
     setParam("code", code);
@@ -982,7 +982,7 @@ class AzureADLoginView extends StatelessWidget {
   }
 
   bool _isRedirectUri(Uri other) {
-    return _isUri(() => options.redirectURI, other);
+    return _isUri(() => options.redirectUri, other);
   }
 
   bool _isRegisterUri(Uri other) {

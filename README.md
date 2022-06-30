@@ -18,7 +18,7 @@ class MyLoginExamplePage extends StatelessWidget {
       // setup required settings
       .setTenant("<TENANT-NAME-OR-ID>")
       .setClientId("<CLIENT-ID>")
-      .setRedirectURI("<REDIRECT-URI>")
+      .setRedirectUri("<REDIRECT-URI>")
       .setLoginPolicy("<NAME-OF-LOGIN-POLICY>")
       .setOnNewTokens((AzureADLoginNewTokensHandlerContext context) {
          // s. `context.tokens`

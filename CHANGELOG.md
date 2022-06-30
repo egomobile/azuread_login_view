@@ -1,3 +1,7 @@
+## 0.5.0
+
+* **BREAKING CHANGES**: changed all names with `redirectURI` to `redirectUri` to be more consistent
+
 ## 0.4.0
 
 * add `getTokenUri()` method to [AzureADLoginViewOptions class](https://pub.dev/documentation/azuread_login_view/latest/widgets_azure_ad_login_view/AzureADLoginViewOptions-class.html)
