@@ -1,3 +1,9 @@
+## 0.6.0
+
+* update dependencies:
+  * `http`: `0.13.5`
+  * `webview_flutter`: `4.0.0`
+
 ## 0.5.0
 
 * **BREAKING CHANGES**: changed all names with `redirectURI` to `redirectUri` to be more consistent
