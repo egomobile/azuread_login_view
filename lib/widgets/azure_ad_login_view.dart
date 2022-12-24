@@ -850,103 +850,109 @@ class AzureADLoginView extends StatelessWidget {
           "value ${options.initialUri} of InitialAzureADLoginUri is not supported");
     }
 
-    return WebView(
-      initialUrl: initialUrl,
-      javascriptMode: JavascriptMode.unrestricted,
-      navigationDelegate: (navigation) async {
-        try {
-          final uri = Uri.parse(navigation.url);
+    final controller = WebViewController()
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..currentUrl()
+      ..setNavigationDelegate(NavigationDelegate(
+        onNavigationRequest: (navigation) async {
+          try {
+            final uri = Uri.parse(navigation.url);
 
-          if (_isLoginUri(uri)) {
-            return NavigationDecision.navigate;
-          }
-
-          if (options.registerPolicy != null) {
-            if (_isRegisterUri(uri)) {
+            if (_isLoginUri(uri)) {
               return NavigationDecision.navigate;
             }
-          }
 
-          if (options.passwordResetPolicy != null) {
-            if (_isPasswordResetUri(uri)) {
-              return NavigationDecision.navigate;
-            }
-          }
-
-          if (_isRedirectUri(uri)) {
-            if (options.initialUri != InitialAzureADLoginUri.login) {
-              final newTokensContext = AzureADLoginNewTokensHandlerContext._(
-                  tokens: null,
-                  initialUri: options.initialUri,
-                  navigation: navigation);
-
-              return options.onNewTokens(newTokensContext) ??
-                  NavigationDecision.navigate;
+            if (options.registerPolicy != null) {
+              if (_isRegisterUri(uri)) {
+                return NavigationDecision.navigate;
+              }
             }
 
-            if (uri.hasQuery) {
-              if (uri.queryParameters["code"] != null) {
-                try {
-                  // generate access token from `code`
-                  final code = uri.queryParameters["code"] as String;
-                  final response = await _getUserTokensByCode(code);
+            if (options.passwordResetPolicy != null) {
+              if (_isPasswordResetUri(uri)) {
+                return NavigationDecision.navigate;
+              }
+            }
 
-                  // collect data
-                  final newTokens = AzureADTokens._();
-                  newTokens.accessToken = response['access_token'];
-                  newTokens.refreshToken = response['refresh_token'];
-                  newTokens.expiresOn = response['expires_on'];
-                  newTokens._baseUrl = options.getBaseUri();
-                  newTokens._clientId = options.clientId;
-                  newTokens._isB2C = options.isB2C;
-                  newTokens._loginPolicy = options.loginPolicy;
-                  newTokens._redirectUri = options.redirectUri;
-                  newTokens._scopes = options.scopes.toList(growable: false);
-
-                  final newTokensContext =
-                      AzureADLoginNewTokensHandlerContext._(
-                    tokens: newTokens,
+            if (_isRedirectUri(uri)) {
+              if (options.initialUri != InitialAzureADLoginUri.login) {
+                final newTokensContext = AzureADLoginNewTokensHandlerContext._(
+                    tokens: null,
                     initialUri: options.initialUri,
-                    navigation: navigation,
-                  );
+                    navigation: navigation);
 
-                  return options.onNewTokens(newTokensContext) ??
-                      NavigationDecision.navigate;
-                } catch (error) {
-                  final newErrorContext =
-                      AzureADLoginNavigationErrorHandlerContext._(
-                    error: error,
-                    navigation: navigation,
-                  );
+                return options.onNewTokens(newTokensContext) ??
+                    NavigationDecision.navigate;
+              }
 
-                  return onNavigationError(newErrorContext) ??
-                      NavigationDecision.prevent;
+              if (uri.hasQuery) {
+                if (uri.queryParameters["code"] != null) {
+                  try {
+                    // generate access token from `code`
+                    final code = uri.queryParameters["code"] as String;
+                    final response = await _getUserTokensByCode(code);
+
+                    // collect data
+                    final newTokens = AzureADTokens._();
+                    newTokens.accessToken = response['access_token'];
+                    newTokens.refreshToken = response['refresh_token'];
+                    newTokens.expiresOn = response['expires_on'];
+                    newTokens._baseUrl = options.getBaseUri();
+                    newTokens._clientId = options.clientId;
+                    newTokens._isB2C = options.isB2C;
+                    newTokens._loginPolicy = options.loginPolicy;
+                    newTokens._redirectUri = options.redirectUri;
+                    newTokens._scopes = options.scopes.toList(growable: false);
+
+                    final newTokensContext =
+                        AzureADLoginNewTokensHandlerContext._(
+                      tokens: newTokens,
+                      initialUri: options.initialUri,
+                      navigation: navigation,
+                    );
+
+                    return options.onNewTokens(newTokensContext) ??
+                        NavigationDecision.navigate;
+                  } catch (error) {
+                    final newErrorContext =
+                        AzureADLoginNavigationErrorHandlerContext._(
+                      error: error,
+                      navigation: navigation,
+                    );
+
+                    return onNavigationError(newErrorContext) ??
+                        NavigationDecision.prevent;
+                  }
                 }
               }
             }
+          } catch (error) {
+            final newErrorContext = AzureADLoginNavigationErrorHandlerContext._(
+              error: error,
+              navigation: navigation,
+            );
+
+            return onNavigationError(newErrorContext) ??
+                NavigationDecision.prevent;
           }
-        } catch (error) {
-          final newErrorContext = AzureADLoginNavigationErrorHandlerContext._(
-            error: error,
-            navigation: navigation,
-          );
 
-          return onNavigationError(newErrorContext) ??
-              NavigationDecision.prevent;
-        }
+          return NavigationDecision.navigate;
+        },
+      ));
 
-        return NavigationDecision.navigate;
-      },
-      onWebViewCreated: (controller) {
-        if (options.clearCache) {
-          controller.clearCache();
-        }
+    if (options.clearCache) {
+      controller.clearCache();
+    }
 
-        final initialJavaScript = options.initialJavaScript;
-        if (initialJavaScript != null) {
-          controller.runJavascriptReturningResult(initialJavaScript);
-        }
-      },
+    final initialJavaScript = options.initialJavaScript;
+    if (initialJavaScript != null) {
+      controller.runJavaScriptReturningResult(initialJavaScript);
+    }
+
+    controller.loadRequest(Uri.parse(initialUrl));
+
+    return WebViewWidget(
+      controller: controller,
     );
   }
 
